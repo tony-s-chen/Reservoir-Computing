@@ -31,7 +31,7 @@ vortex_remag_cutoff = 19.5#(max_field + min_field)/2
 input_folder = r'C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\Sin'
 #input_folder = 
 
-data_IO = compare_outputs(input_folder)
+data_IO = extract_data(input_folder)
 input_field = [x/10 for x in data_IO[0]]
 
 
@@ -65,18 +65,25 @@ for i in range(0, len(input_field)):
         output_v_amp.append(new_peak[1])
 
 output_ms_amp = normalise_data(output_ms_amp)
-data_output = normalise_data(data_IO[1])
+ms_data_output = normalise_data(data_IO[1])
+v_data_output = normalise_data(data_IO[2])
 
 mse_data = []
 for i in range(0, len(output_ms_amp)):
     mse_data.append((output_ms_amp[i] - data_output[i])**2)
 
-fig,ax = plt.subplots(4,1)
-ax[0].plot(input_field)
-ax[1].plot(output_ms_amp)
-ax[2].plot(output_ms_amp)
-ax[2].plot(data_output)
-ax[3].plot(mse_data)
+fig,ax = plt.subplots(4,2)
+ax[0][0].plot(input_field)
+ax[1][0].plot(output_ms_amp)
+ax[2][0].plot(output_ms_amp)
+ax[2][0].plot(ms_data_output)
+ax[3][0].plot(mse_data)
+
+ax[0][1].plot(input_field)
+ax[1][1].plot(output_v_amp)
+ax[2][1].plot(output_v_amp)
+ax[2][1].plot(v_data_output)
+ax[3][1].plot(mse_data)
 
 plt.show()
 

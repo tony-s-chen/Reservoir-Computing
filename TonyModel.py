@@ -470,13 +470,12 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
     popt_c = remag_train_fit_popt(index,*popt_c_remag)
     popt_d = remag_train_fit_popt(index,*popt_d_remag)
 
-    x = np.linspace(19,25,61)
+    #x = np.linspace(19,25,61)
     #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
     new_ms = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
     if new_ms < ms_amp:
         new_ms = ms_amp
-
 
     if prev_field<19:
         prev_field = 19
@@ -495,7 +494,7 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
     popt_c = remag_train_fit_popt(index,*popt_c_remag_vortex)
     popt_d = remag_train_fit_popt(index,*popt_d_remag_vortex)
 
-    x = np.linspace(19,25,61)
+    #x = np.linspace(19,25,61)
     #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
     new_v = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
@@ -504,15 +503,17 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
 
     return(new_ms,new_v)
     
-def compare_outputs(filepath,sheet = 'LP_Scale0'):
+def extract_data(filepath,sheet = 'LP_Scale0'):
     path = os.path.join(filepath,'all_data.xlsx') ## Path to the datafile
     data = pd.read_excel(path,sheet_name =sheet) ## Load data into a pandas dataframe
-    peak_freq = data['IQ209'].tolist()
+    ms_peak_freq = data['IQ209'].tolist()
+    v_peak_freq = data['IQ105'].tolist()
     H_app = data['H_app2'].tolist()
-    return H_app, peak_freq
+    return H_app, ms_peak_freq, v_peak_freq
 
 def normalise_data(data):
-    max_value = max(data)
+    max_index = np.argmax([abs(x) for x in data])
+    max_value = data[max_index]
     data = [x/max_value for x in data]
     return data
     
