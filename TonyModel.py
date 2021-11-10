@@ -20,10 +20,10 @@ def find_nearest(array, value):
     return idx
 
 def vortex_train_fit(x,a,b,c,d):
-    return a+ b*np.exp(-1*c*(x**d))
+    return a + b*np.exp(-1*c*(x**d))
 
 def ms_train_fit(x,b,c,d):
-    return  c  + (1-b*np.exp(d*x))
+    return  c + (1-b*np.exp(d*x))
 
 def ms_train_fit_popt(x,a,b,c):
     return  a+ b*x + c*x**2
@@ -34,7 +34,7 @@ def vortex_train_fit_popt(x,a,b,c):
 def remag_train_fit_popt(x,a,b,c):
     return a+c*x**2+b*x 
 
-def sigmoid_fit(x,a,b,c,d,):
+def sigmoid_fit(x,a,b,c,d):
     return a + (1/(1+np.exp(-x*c +d)))*b
 
 def fit_training_data(foldername):
@@ -463,16 +463,15 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
     index = index/2
     #print(index)
     #plt.scatter(prev_field,ms_amp)
-    prev_value = [index]
     #print(prev_value)
-    for i in range(len(prev_value)):
-        popt_a = remag_train_fit_popt(prev_value[i],*popt_a_remag)
-        popt_b = remag_train_fit_popt(prev_value[i],*popt_b_remag)
-        popt_c = remag_train_fit_popt(prev_value[i],*popt_c_remag)
-        popt_d = remag_train_fit_popt(prev_value[i],*popt_d_remag)
+
+    popt_a = remag_train_fit_popt(index,*popt_a_remag)
+    popt_b = remag_train_fit_popt(index,*popt_b_remag)
+    popt_c = remag_train_fit_popt(index,*popt_c_remag)
+    popt_d = remag_train_fit_popt(index,*popt_d_remag)
 
     x = np.linspace(19,25,61)
-    fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
+    #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
     new_ms = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
     if new_ms < ms_amp:
@@ -490,15 +489,14 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
     index = index/2
     #print(index)
     #plt.scatter(prev_field,ms_amp)
-    prev_value = [index]
-    for i in range(len(prev_value)):
-        popt_a = remag_train_fit_popt(prev_value[i],*popt_a_remag_vortex)
-        popt_b = remag_train_fit_popt(prev_value[i],*popt_b_remag_vortex)
-        popt_c = remag_train_fit_popt(prev_value[i],*popt_c_remag_vortex)
-        popt_d = remag_train_fit_popt(prev_value[i],*popt_d_remag_vortex)
+
+    popt_a = remag_train_fit_popt(index,*popt_a_remag_vortex)
+    popt_b = remag_train_fit_popt(index,*popt_b_remag_vortex)
+    popt_c = remag_train_fit_popt(index,*popt_c_remag_vortex)
+    popt_d = remag_train_fit_popt(index,*popt_d_remag_vortex)
 
     x = np.linspace(19,25,61)
-    fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
+    #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
     new_v = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
     if new_v > v_amp:
