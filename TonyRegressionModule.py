@@ -100,12 +100,3 @@ def regression(training_data, training_names, testing_data, testing_names, reg_t
     ax[1].legend()
 
     return reg, output_train, output_test, MSE_train, MSE_test
-
-train_data_1 = data_extractor(r"C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\\Sin\all_data.xlsx", 'IQ210', 10, 10)
-train_data_2 = data_extractor(r"C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\\Mackey_Glass\all_data.xlsx", 'IQ210', 10, 10)
-train_data = train_data_1[0].append(train_data_2[0])
-print(train_data)
-train_data_3 = data_extractor(r"C:\Users\Tong\Downloads\All_data\HDS_GS\Inv_Saw\all_data.xlsx", 'IQ217', 10, 10)
-train_data = train_data.append(train_data_3[0])
-test_data= data_extractor(r"C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\\Random\all_data.xlsx", 'IQ210', 10, 10)
-regression(train_data, train_data_1[1], train_data_3[0], test_data[1], "Lasso")
