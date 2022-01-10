@@ -417,6 +417,9 @@ def Vortex_field_new(ms_amp,ms_freq,v_amp,field_value, fit_ms_amp, fit_ms_freq, 
 
     effective_loop = x[index]
     ms_amp_new = vortex_train_fit(effective_loop+1,popt_a,popt_b,popt_c,popt_d)
+    
+    ms_diff = ms_amp_new - ms_amp
+    
     #print(ms_amp_new)
     popt_f_a = ms_train_fit_popt(field_value,*popt_a_training_frequency)
     popt_f_b = ms_train_fit_popt(field_value,*popt_b_training_frequency)
@@ -446,12 +449,15 @@ def Vortex_field_new(ms_amp,ms_freq,v_amp,field_value, fit_ms_amp, fit_ms_freq, 
 
     v_amp_new = vortex_train_fit(effective_loop+1,popt_vf_a,popt_vf_b,popt_vf_c,popt_vf_d)
 
-    return(ms_amp_new,ms_freq_new,v_amp_new)
+    return(ms_amp_new,ms_freq_new,v_amp_new,ms_diff)
 
-def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
+def Remag_field_new(ms_amp,v_amp,field_value, prev_field, fit_ms_amp, fit_v_amp):
     
     popt_a_remag,popt_b_remag,popt_c_remag,popt_d_remag,df_remag_look_up = fit_ms_amp
     popt_a_remag_vortex,popt_b_remag_vortex,popt_c_remag_vortex,popt_d_remag_vortex, df_remag_look_up_vortex = fit_v_amp
+    
+    next_value = field_value + (field_value - prev_field)
+    prev_field = field_value
     
     if prev_field < 19:
         prev_field = 19
@@ -472,10 +478,17 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
 
     #x = np.linspace(19,25,61)
     #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
+    
+    
     new_ms = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
     if new_ms < ms_amp:
         new_ms = ms_amp
+        
+    ms_diff = new_ms - ms_amp
+    
+    if ms_diff == 0:
+        print(ms_amp, field_value, prev_field)
 
     if prev_field<19:
         prev_field = 19
@@ -498,23 +511,166 @@ def Remag_field_new(ms_amp,v_amp,field_value,prev_field, fit_ms_amp, fit_v_amp):
     #fields = sigmoid_fit(x,popt_a,popt_b,popt_c,popt_d)
     new_v = sigmoid_fit(field_value,popt_a,popt_b,popt_c,popt_d)
 
-    if new_v > v_amp:
-        new_v = v_amp
+#    if new_v > v_amp:
+#        new_v = v_amp
 
-    return(new_ms,new_v)
+    return(new_ms,new_v, ms_diff)
     
-def extract_data(filepath,sheet = 'LP_Scale0'):
+def extract_data(filepath,column_name, sheet = 'LP_Scale0'):
     path = os.path.join(filepath,'all_data.xlsx') ## Path to the datafile
     data = pd.read_excel(path,sheet_name =sheet) ## Load data into a pandas dataframe
-    ms_peak_freq = data['IQ209'].tolist()
+    ms_peak_freq = data[column_name].tolist() #209
     v_peak_freq = data['IQ105'].tolist()
     H_app = data['H_app2'].tolist()
     return H_app, ms_peak_freq, v_peak_freq
+
+def extract_peak(filepath,sheet = 'LP_Scale0'):
+    path = os.path.join(filepath,'all_data.xlsx') ## Path to the datafile
+    data = pd.read_excel(path,sheet_name =sheet)
+    ms_peak = data.iloc[:,180:230].max(axis=1)
+    print(ms_peak)
+    ms_peak = ms_peak.tolist()
+    return ms_peak
 
 def normalise_data(data):
     max_index = np.argmax([abs(x) for x in data])
     max_value = data[max_index]
     data = [x/max_value for x in data]
     return data
+    
+def vortex_remag_weight(field, cutoff, min_field, max_field, a):
+    if field < cutoff:
+        vortex_weight = 1- (0.5*((field - min_field)/(cutoff - min_field))**a)
+        remag_weight = 1 - vortex_weight
+    elif field >= cutoff:
+        remag_weight  = 1 - (0.5*((max_field - field)/(max_field - cutoff))**a)
+        vortex_weight = 1-remag_weight
+    return vortex_weight, remag_weight
+    
+def vortex_remag_weight2(field, cutoff, min_field, max_field):
+    vortex_weight = np.exp(-5*(field - min_field)/(cutoff - min_field))
+    remag_weight = np.exp(-2*(max_field - field)/(max_field - cutoff))
+    return vortex_weight, remag_weight
+
+def model_data():
+    file = r"C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\Sin\all_data.xlsx"
+    training_data = pd.read_excel(file,"LP_Scale0") 
+    ms_data  = training_data.loc[:,['H_app2','IQ209','IQ208','IQ207','IQ210','IQ211','IQ212']] #IQ216 for random
+    #print(ms_data)
+    return ms_data
+    
+def model_step(ms_data, ms_amp, field_value):
+    app_field = ms_data['H_app2'].values
+    app_field = [x/10 for x in app_field]
+    max_app_field = max(app_field)
+    #app_field = [x/max_app_field for x in app_field]
+    obs_peak = ms_data['IQ209'].values
+    obs_peak = []
+    for i in ['IQ209','IQ208','IQ207','IQ210','IQ211','IQ212']:
+        for j in range(0, len(ms_data[f"{i}"].values)):
+            obs_peak.append(ms_data[f"{i}"][j])
+    #print(obs_peak)
+    max_obs_peak = max(obs_peak)
+    #scaled_obs_peak = [x/max_obs_peak for x in obs_peak]
+    diff_array = []
+    for i in range(0,len(app_field)):
+        field_diff = app_field[i]- field_value
+        ms_diff = obs_peak[i] - ms_amp
+        diff_sqr = (field_diff/max_app_field)**2 + (ms_diff/max_obs_peak)**2
+        diff_array.append(diff_sqr)
+        #print(field_diff,ms_diff,diff_sqr)
+    #print(diff_array)
+    index = np.argmin(diff_array)
+    if index < len(app_field)-1:
+        new_ms = obs_peak[index+1] - obs_peak[index]
+    else:
+        new_ms = 0
+    return new_ms
+ 
+def run_model(input_field,max_field,min_field,vortex_remag_cutoff,fit_training_ms_amp, fit_training_ms_freq, fit_training_v_amp,fit_remag_ms,fit_remag_v,ms_data_output):
+    
+    a_optimum = 2
+    #output data
+    output_ms_amp = []
+    output_ms_freq = []
+    output_v_amp = []
+    output_ms_weighted = []
+    
+    #initial peak parameters
+    ms = 1
+    ms_test = 1
+    v = 0
+    f = 7
+    for i in range(0, len(input_field)):
+        input_field[i]
+        if input_field[i] > max_field:
+            input_field[i] = max_field
+        if input_field[i] < min_field:
+            input_field[i] = min_field
+        if input_field[i] < vortex_remag_cutoff:
+            new_peak = Vortex_field_new(ms, f, v, input_field[i], fit_training_ms_amp, fit_training_ms_freq, fit_training_v_amp)
+            ms, f, v = new_peak[0:3]
+            output_ms_amp.append(new_peak[0])
+            output_ms_freq.append(new_peak[1])
+            output_v_amp.append(new_peak[2])
+        elif input_field[i] >= vortex_remag_cutoff:
+            new_peak = Remag_field_new(ms,v,input_field[i],input_field[i-1], fit_remag_ms, fit_remag_v)
+            ms, v = new_peak[0:2]
+            output_ms_amp.append(new_peak[0])
+            output_v_amp.append(new_peak[1])
+        vortex_diff = Vortex_field_new(ms_test, f, v, input_field[i], fit_training_ms_amp, fit_training_ms_freq, fit_training_v_amp)[-1]
+        remag_diff = Remag_field_new(ms_test,v,input_field[i],input_field[i-1], fit_remag_ms, fit_remag_v)[-1]
+        vortex_weight, remag_weight = vortex_remag_weight(input_field[i],vortex_remag_cutoff,min_field, max_field,a_optimum)
+        #print(vortex_weight, remag_weight)
+        ms_test += vortex_weight*vortex_diff + remag_weight*remag_diff
+        output_ms_weighted.append(ms_test)
+        
+        
+    
+    output_ms_amp = normalise_data(output_ms_amp)
+    
+#    mse_sum = 0
+#    for i in range(0, len(output_ms_weighted)):
+#        mse_sum += (output_ms_weighted[i] - ms_data_output[i])**2
+        
+#    print(mse_sum)
+        
+#    output_ms_weighted = normalise_data(output_ms_weighted)
+#    
+#    mse_data = []
+#    for i in range(0, len(output_ms_amp)):
+#        mse_data.append((output_ms_amp[i] - ms_data_output[i])**2)
+#    
+#    mse_weighted_data = []
+#    for i in range(0, len(output_ms_weighted)):
+#        mse_weighted_data.append((output_ms_weighted[i] - ms_data_output[i])**2)
+        
+    
+    
+    fig,ax = plt.subplots(5,1)
+    ax[0].plot(input_field)
+    ax[0].set_title("Input field")
+    
+    #ax[1].plot(ms_data_output)
+    ax[1].set_title("Experimental Output")
+    
+    #ax[2].plot(ms_data_output, label = "Experimental")
+    ax[2].plot(output_ms_amp, label = "Computational")
+    ax[2].set_title("Computational Output")
+    ax[2].legend()
+    
+    #ax[3].plot(ms_data_output, label = "Experimental")
+    ax[3].plot(output_ms_weighted, label = "Computational")
+    ax[3].set_title("Weighted Computational Output")
+    ax[3].legend()
+    
+#    ax[4].plot(mse_data, label = "Not weighted")
+#    ax[4].plot(mse_weighted_data, label = "weighted")
+#    ax[4].set_title("Error Squared")
+#    ax[4].legend()
+    
+    plt.show()
+    
+    return input_field, output_ms_weighted
     
 show_plots = False
