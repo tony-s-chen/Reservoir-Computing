@@ -134,7 +134,53 @@ def data_extractor2(file_location, target_bin_num, prev_inputs, prev_outputs, sh
     #print(df_data)
     return df_data, reservoir_output_names
 
+def data_extractor_MG(file_location, target_bin, prev_inputs, prev_outputs, sheet_name = 'LP_Scale0'):
+    '''
+    extracts the data from an excel located at file_location
+    sets the target to the target_bin column
+    set number of previous input and output the data should extract
+    
+    returns: 
+        df_data: dataframe for extracted data
+        reservoir_output_names: list of column names of the df
+    '''
+    
+    
+    df=pd.read_excel(file_location,sheet_name)
+    print(df)
+    df = df.drop(columns=['number', 'H_app'])
+    df = df.rename(columns={'H_app2':'Current_input'})
+    
+    print(df)
+    df2 = pd.read_excel(r"C:\Users\Tong\Desktop\Msci\Files_for_MSci_students\Samples\HDS_GS\Long_sweeps\\Mackey_Glass\all_data.xlsx",sheet_name)
+    df_data = pd.DataFrame()
+    
+    # Assign the target point to be the frequency bin
+    n = 5
+    df_data["Target"] = df['Current_input'].shift(n)
+    
+    print(df_data)
+    df_data = pd.concat([df_data, df],axis = 1, join = 'inner')
+    #df_data["Target"] = df_data["Target"].div(df_data["Target"].max())
+    reservoir_output_names = []
+    
+    for col in df_data.columns:
+        reservoir_output_names.append(col)
+        
+    print(reservoir_output_names)
+    reservoir_output_names.pop(0)
+    reservoir_output_names.pop(0)
+    
+    print(reservoir_output_names)
+    ## Create empty df columns for input and outputs
 
+    ## Include the current input as a parameter
+    reservoir_output_names.append('Current_input')
+    df_data = df_data.iloc[n:, :]
+    print(df_data)
+
+    #print(df_data)
+    return df_data, reservoir_output_names
 
 def empty_df(file_location, target_bin, prev_inputs, prev_outputs, sheet_name = 'LP_Scale0'):
     '''
